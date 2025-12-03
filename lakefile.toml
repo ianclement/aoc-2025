@@ -6,6 +6,10 @@ defaultTargets = ["aoc-2025"]
 name = "Aoc2025"
 
 [[lean_exe]]
+name = "sandbox"
+root = "Sandbox"
+
+[[lean_exe]]
 name = "aoc-2025"
 root = "Main"
 
@@ -21,7 +25,4 @@ root = "Day02"
 name = "day-03"
 root = "Day03"
 
-[[lean_exe]]
-name = "sandbox"
-root = "Sandbox"
 
