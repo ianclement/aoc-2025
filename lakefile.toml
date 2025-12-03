@@ -1,0 +1,27 @@
+name = "aoc-2025"
+version = "0.1.0"
+defaultTargets = ["aoc-2025"]
+
+[[lean_lib]]
+name = "Aoc2025"
+
+[[lean_exe]]
+name = "aoc-2025"
+root = "Main"
+
+[[lean_exe]]
+name = "day-01"
+root = "Day01"
+
+[[lean_exe]]
+name = "day-02"
+root = "Day02"
+
+[[lean_exe]]
+name = "day-03"
+root = "Day03"
+
+[[lean_exe]]
+name = "sandbox"
+root = "Sandbox"
+
