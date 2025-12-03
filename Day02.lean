@@ -1,25 +1,20 @@
 import Aoc2025
 import Std.Data.HashSet
 
--- def substr (s : String) (lower : Nat) (upper : Nat) (h: lower < upper): String :=
---   let a := s.pos! (String.Pos.Raw.mk lower)
---   let b := s.pos! (String.Pos.Raw.mk upper)
---   let slice := String.Slice.mk s a b (by
---     dsimp [a, b]
-      
---   )
---   slice.copy
-
--- def prefix (s : String) (l : Nat) (h : l ≤ s.length) : String :=
-  
-
+-- TODO move to shared library, since it's likely useful, also re-write in functional style
+/--
+ Generate the list from applying `f` to each element in the range. 
+ -/
 def forEach (r : Std.Range) (f : Nat → α) [ToString α] : List α  := Id.run do
   let mut xs := [] 
   for i in r do
      xs := xs.append [f i]
   return xs
 
-
+/--
+ If a range changes by a single digit length, then split into two ranges:
+ Ex: 3411-12332 would split to 3411-9999 and 10000-12332
+ -/
 def splitRange (range : String × String) : List (String × String) :=
   let (low, high) := range
   if low.length == high.length
@@ -29,54 +24,45 @@ def splitRange (range : String × String) : List (String × String) :=
     let midH := String.join (["1"] ++ List.replicate low.length "0")
     [(low, midL), (midH, high)]
 
-def invalid (min : Nat) (max: Nat) (s : Nat) (n : Nat) : Nat :=
-  let tmp := n * s + n
-  if min <= tmp && tmp <= max then tmp else 0
 
-
+/--
+ Build a number by repeating the `root` a total of `reps` times.
+ Ex: build 123 4 is 123123123123
+ -/
 def build (digits : Nat) (root : Nat) (reps : Nat) : Nat :=
   match reps with
   | 0 => 0
   | n + 1 => build digits root n * 10 ^ digits + root
 
-def checkForInvalid (range : String × String) (size : Nat) : List Nat :=
+
+
+/--
+ Find "invalid" ids in the range by checking all prefixes of a given size. Only loops over valid prefixes to save time.
+
+ Ex:  
+  - checkForInvalid ("1023", "1456") 2 == [1111, 1212, 1313, 1414]
+  - checkForInvalid ("1023", "1456") 1 == [1111]
+ -/
+def checkForInvalid (range : String × String) (prefixSize : Nat) : List Nat :=
   let (lowS, highS) := range
-  dbg_trace "Range:  {lowS} {highS} {size}"
-  if lowS.length % size != 0
+  --dbg_trace "Range:  {lowS} {highS} {size}"
+  if lowS.length % prefixSize != 0
   then []
   else
-    let lowPrefix := lowS.take size
-    let highPrefix := highS.take size
-    let reps := lowS.length / size
+    let lowPrefix := lowS.take prefixSize
+    let highPrefix := highS.take prefixSize
+    let reps := lowS.length / prefixSize
     let ids := forEach [lowPrefix.toNat! : highPrefix.toNat! + 1] (λ n =>
-      build size n reps
+      build prefixSize n reps
     )
     let check x := lowS.toNat! <= x && x <= highS.toNat!
     let invalidIds := ids.filter check
-    dbg_trace "Ids found: {invalidIds}"
+    --dbg_trace "Ids found: {invalidIds}"
     invalidIds
 
--- def isEvenLength (n : Nat) : Bool :=
---   let s := toString n
---   s.length % 2 == 0
-
--- def findInvalid (range : String × String) : Int :=
---   let (lowS, highS) := range
---   dbg_trace "Range:  {lowS} {highS}"
---   let halfWidth := (max lowS.length highS.length) / 2
---   let halfLowS := lowS.take (lowS.length - halfWidth)
---   let halfHighS := highS.take (highS.length - halfWidth)
---   let halfLow := halfLowS.toNat!
---   let halfHigh := halfHighS.toNat!
---   let low := lowS.toNat!
---   let high := highS.toNat!
---   let scale := 10 ^ halfWidth -- if halfWidth > 0 then 10 ^ halfWidth else 0
---   dbg_trace "halfLow {halfLow}, halfHigh {halfHigh}, scale {scale}"
---   let ids := forEach [halfLow : halfHigh + 1] (invalid low high scale)
---   let ids' := ids.filter isEvenLength
---   dbg_trace "Ids found: {ids'}"
---   ids'.sum
-
+/--
+ Parse input
+ -/
 def parseInput (input : String) : List (String × String) :=
   let rawRanges := input.splitOn ","
   rawRanges.map (λ s => 
@@ -85,11 +71,17 @@ def parseInput (input : String) : List (String × String) :=
     | _ => ("", "")  -- TODO should be add error to parsing?
   )
 
+/--
+  Ceiling of integer division
+ -/
 def ceilDiv (x : Nat) (y : Nat) : Nat :=
   if x % y == 0
   then x / y
   else x / y + 1
 
+/--
+ Solution for Part 1
+ -/
 def solve1 (input : String) : String :=
   let ranges := parseInput input     
   let splitRanges := ranges.flatMap splitRange
@@ -97,22 +89,32 @@ def solve1 (input : String) : String :=
   let invalidIds := splitRanges'.map (λ r => checkForInvalid r (ceilDiv r.fst.length 2)) 
   toString invalidIds.flatten.sum
 
+
+/--
+ Get "invalid" ids for all prefix size up to the midpoint of the range string.
+ -/
 def checkAllSizes (range : String × String) : List Nat :=
   let invalidIds := forEach [1 : range.fst.length / 2 + 1] (λ n => checkForInvalid range n)
   invalidIds.flatten
 
 
-
-def uniq (xs : List α) [BEq α] [Hashable α] : List α := 
+/--
+ Get list of unique values.
+ -/
+def unique (xs : List α) [BEq α] [Hashable α] : List α := 
   let set := Std.HashSet.ofList xs
   set.toList
 
+/--
+ Solution for Part 2
+ -/
 def solve2 (input : String) : String :=
   let ranges := parseInput input     
   let splitRanges := ranges.flatMap splitRange
   let invalidIds := splitRanges.map checkAllSizes
-  let invalidIds' := uniq (invalidIds.flatten)
+  let invalidIds' := unique (invalidIds.flatten)
   toString invalidIds'.sum
+
 
 def main : IO Unit := interact solve2
 
