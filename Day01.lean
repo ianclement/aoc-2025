@@ -10,6 +10,8 @@ instance : ToString Rotation where
     | .Left => "L"
     | .Right => "R"
 
+deriving instance BEq for Rotation
+
 open Rotation
 
 def parseLine (s: String) : Rotation × Int :=
@@ -31,9 +33,11 @@ def rotate' (rs : List (Rotation × Int)) (pos : Int) : List (Int × Int) :=
     let pos' := match d with
                 | Left => pos - amt'
                 | Right => pos + amt'
-    let turns' := if pos' <= 0 || pos' >= 100 then turns + 1 else turns
-    dbg_trace "{pos} {d} {amt} {turns'}"
-    (turns', pos' % 100) :: rotate' rs' (pos' % 100)
+    let turns' := if pos' < 0 || pos' >= 100 then turns + 1 else turns
+    let turns'' := if pos' == 0 && d == Left then turns' + 1 else turns'
+    let turns''' := if pos == 0 && d == Left then turns'' - 1 else turns''
+    dbg_trace "{pos} {d} {amt} {turns'''}"
+    (turns''', pos' % 100) :: rotate' rs' (pos' % 100)
 
 
 def rotate (rs : List (Rotation × Int)) (pos : Int) : List (Int × Int) :=
