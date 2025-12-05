@@ -1,7 +1,4 @@
-import Aoc2025
-import Mathlib.Data.List.Sort
-
-/--
+/-
   Copyright (c) 2025 Ian Clement.
 
   This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
@@ -15,9 +12,10 @@ import Mathlib.Data.List.Sort
   see <https://www.gnu.org/licenses/>.
 -/
 
-def foo := "???"   -- I guess because of back to back comment blocks?
+import Aoc2025
+import Mathlib.Data.List.Sort
 
-/-------------------------------------------------------------------------------
+/- -----------------------------------------------------------------------------
   Parsing & Output
 -------------------------------------------------------------------------------/
 
@@ -30,11 +28,11 @@ def parseRanges (s: String) : List Std.Range :=
   )
   s''
 
-def parseIds (s: String) : List Nat :=
+def parseIds (s: String) : List ℕ :=
    let s' := s.splitOn "\n"
    s'.map (λ s => s.toNat!)
 
-def parse (input : String) : List Std.Range × List Nat :=
+def parse (input : String) : List Std.Range × List ℕ :=
   match input.splitOn "\n\n" with
   | [ranges, ids] => 
     let ranges' := parseRanges ranges
@@ -44,27 +42,31 @@ def parse (input : String) : List Std.Range × List Nat :=
 
 
 -- def output (sol : α) [ToString α] : String := toString sol
-def output (sol : Nat) : String := toString sol
+def output (sol : ℕ) : String := toString sol
 
-/------------------------------------------------------------------------------
+/- ----------------------------------------------------------------------------
   Part 1
 ------------------------------------------------------------------------------/
 
-def Std.Range.member (r : Std.Range) (x : Nat) : Bool :=
+def Std.Range.member (r : Std.Range) (x : ℕ) : Bool :=
   r.start <= x && x < r.stop
 
-def solve1 (xs: List Std.Range × List Nat) : Nat :=
+def solve1 (xs: List Std.Range × List ℕ) : ℕ :=
   let (ranges, ids) := xs
   let fresh := ids.filter (λ id => 
     ranges.any (λ r => r.member id)
   )
   fresh.length
 
-/------------------------------------------------------------------------------
+/- ----------------------------------------------------------------------------
   Part 2
 ------------------------------------------------------------------------------/
 
+/- Define a new property since we'll be sorting by the range's start value -/
+
 def RangeStartLe (r₁ r₂ : Std.Range) : Prop := r₁.start ≤ r₂.start
+
+/- Relation is decidable, total and transitive: -/
 
 instance : DecidableRel RangeStartLe := λ r₁ r₂ => Nat.decLe r₁.start r₂.start 
   
@@ -73,28 +75,42 @@ instance : IsTotal Std.Range RangeStartLe where
 
 instance : IsTrans Std.Range RangeStartLe where
   trans r₁ r₂ r₃ h₁ h₂ := Nat.le_trans h₁ h₂
-  
-def combine (current : Std.Range) (ranges : List Std.Range) (h : List.Sorted RangeStartLe ranges) : List Std.Range := 
+
+
+/--
+  Construct the union of the (possibly overlapping) ranges.
+  Optimization: the scan can be linear when the ranges are sorted by start value (ascending), ensured by the proof term `h`
+-/
+def union (current : Std.Range) (ranges : List Std.Range) (h : List.Sorted RangeStartLe ranges) : List Std.Range := 
   match ranges with
   | [] => [current]
   | r :: rs => 
+    -- prove that sub-list is also sorted (needed for the recursive call)
     have h' : List.Sorted RangeStartLe rs := by 
       apply List.Sorted.of_cons h
-    if r.start < current.stop
-    then combine [current.start : max r.stop current.stop] rs h'
-    else current :: combine r rs h'
 
-def solve2 (xs: List Std.Range × List Nat) : Nat :=
+    -- if the new `r` range overlaps the current one, then expand the current, otherwise
+    -- `r` is our new current range
+    if r.start < current.stop
+    then union [current.start : max r.stop current.stop] rs h'
+    else current :: union r rs h'
+
+
+def solve2 (xs: List Std.Range × List ℕ) : ℕ :=
   let (ranges, _) := xs
+
+  -- sort the list and construct the proof term for the union function
+  -- TODO: use a more efficient proof
   let rangesSorted := ranges.insertionSort (λ r₁ r₂ => r₁.start ≤ r₂.start)  
   have h: List.Sorted RangeStartLe rangesSorted:= by
     simp [rangesSorted]
     apply List.sorted_insertionSort RangeStartLe
-  let rangesUnion := combine [0:0] rangesSorted h
+
+  let rangesUnion := union [0:0] rangesSorted h
   let sizes := rangesUnion.map (λ r => r.size)
   sizes.sum
 
-/------------------------------------------------------------------------------
+/- ----------------------------------------------------------------------------
   Main
 ------------------------------------------------------------------------------/
 
