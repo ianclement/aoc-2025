@@ -5,6 +5,10 @@ defaultTargets = ["aoc-2025"]
 [[lean_lib]]
 name = "Aoc2025"
 
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
 [[lean_exe]]
 name = "sandbox"
 root = "Sandbox"
@@ -24,5 +28,13 @@ root = "Day02"
 [[lean_exe]]
 name = "day-03"
 root = "Day03"
+
+[[lean_exe]]
+name = "day-04"
+root = "Day04"
+
+[[lean_exe]]
+name = "day-05"
+root = "Day05"
 
 
